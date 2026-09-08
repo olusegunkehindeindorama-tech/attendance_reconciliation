@@ -6,107 +6,194 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   
   <style>
-    body { padding: 20px; background-color: #f8f9fa; }
-    .card { margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .history-table th, .history-table td { font-size: 0.85rem; vertical-align: middle; }
-    #msgBox { display: none; margin-top: 15px; white-space: pre-line; }
+    body {
+      padding: 24px;
+      background-color: #f0f2f5;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    .page-title {
+      font-weight: 600;
+      color: #1a1a2e;
+      margin-bottom: 1.5rem;
+    }
+    .card {
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      margin-bottom: 1.5rem;
+    }
+    .card-header-section {
+      background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+      color: white;
+      border-radius: 12px 12px 0 0;
+      padding: 1rem 1.5rem;
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+    .form-section {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid #e9ecef;
+    }
+    .form-section:last-of-type {
+      border-bottom: none;
+    }
+    .form-section-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #6c757d;
+      margin-bottom: 0.85rem;
+    }
+    label {
+      font-weight: 500;
+      font-size: 0.9rem;
+      color: #343a40;
+      margin-bottom: 0.35rem;
+    }
+    .form-control, .form-select {
+      border-radius: 8px;
+    }
+    .history-table th, .history-table td {
+      font-size: 0.85rem;
+      vertical-align: middle;
+    }
+    #msgBox {
+      display: none;
+      margin-top: 1rem;
+      white-space: pre-line;
+      border-radius: 8px;
+    }
+    .btn-submit {
+      min-width: 180px;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+    .hint-text {
+      font-size: 0.8rem;
+      color: #6c757d;
+    }
   </style>
 </head>
 <body>
 
-<div class="container-fluid">
-  <h2 class="mb-4">Attendance Reconciliation Form</h2>
+<div class="container-fluid" style="max-width: 1100px;">
+  <h2 class="page-title">Attendance Reconciliation</h2>
 
-  <div class="card p-4">
+  <div class="card">
+    <div class="card-header-section">
+      New Reconciliation Record
+    </div>
+
     <form id="recordForm" onsubmit="handleFormSubmit(event)">
-      <div class="row mb-3">
-        <div class="col-md-2">
-          <label class="fw-bold">Emp ID</label>
-          <input type="text" class="form-control" id="empId" required oninput="lookupByEvt('id')">
-        </div>
-        <div class="col-md-3">
-          <label class="fw-bold">Employee Name</label>
-          <input type="text" class="form-control" id="empName" placeholder="Type to search name..." list="empNameList" oninput="lookupByEvt('name')">
-          <datalist id="empNameList"></datalist>
-        </div>
-        <div class="col-md-2">
-          <label>Entry Month</label>
-          <input type="text" class="form-control bg-light" id="entryMonth" readonly>
-        </div>
-        <div class="col-md-3">
-          <label>Arrears Month</label>
-          <select class="form-select" id="arrearsMonth"></select>
-        </div>
-        <div class="col-md-2">
-          <label>Action Month</label>
-          <input type="text" class="form-control bg-light" id="actionMonth" readonly>
-        </div>
-      </div>
 
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label>Absent Days (Hold SHIFT to select a range)</label>
-          <input type="text" class="form-control" id="absentDays" placeholder="Click or Shift+Click dates..." required>
-        </div>
-        <div class="col-md-2">
-          <label>Days Selected</label>
-          <input type="text" class="form-control text-center fw-bold" id="arrearsDaysDisplay" value="0" readonly>
-        </div>
-        <div class="col-md-4">
-          <label>Reason</label>
-          <input list="reasonList" class="form-control" id="reason" value="Leave" required>
-          <datalist id="reasonList">
-            <option value="Leave">
-            <option value="Present">
-            <option value="Week Off">
-            <option value="Official Duty">
-            <option value="Advance payment">
-          </datalist>
-        </div>
-      </div>
-
-      <div class="row mb-3">
-        <div class="col-md-8">
-          <label>Proof (Doc No, Mail, etc.)</label>
-          <textarea class="form-control" id="proof" rows="2"></textarea>
-        </div>
-        <div class="col-md-4">
-          <label>Action</label>
-          <select class="form-select bg-light" id="action" disabled>
-            <option value="Treated" selected>Treated</option>
-            <option value="Not treated">Not treated</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="row mb-4 align-items-center">
-        <div class="col-md-3">
-          <label class="d-block mb-1">Assign Rec No?</label>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="assignRec" id="assignYes" value="Yes" checked onchange="toggleRecNo()">
-            <label class="form-check-label" for="assignYes">Yes (Auto)</label>
+      <!-- Employee -->
+      <div class="form-section">
+        <div class="form-section-title">Employee</div>
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label for="empId">Emp ID</label>
+            <input type="text" class="form-control" id="empId" required oninput="lookupByEvt('id')" placeholder="e.g. E1234">
           </div>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="assignRec" id="assignNo" value="No" onchange="toggleRecNo()">
-            <label class="form-check-label" for="assignNo">No (Manual)</label>
+          <div class="col-md-5">
+            <label for="empName">Employee Name</label>
+            <input type="text" class="form-control" id="empName" placeholder="Type to search name..." list="empNameList" oninput="lookupByEvt('name')">
+            <datalist id="empNameList"></datalist>
           </div>
         </div>
-        <div class="col-md-3">
-          <label>Manual Rec No (Optional)</label>
-          <input type="text" class="form-control" id="manualRecNo" disabled placeholder="Will be auto-generated">
-        </div>
-        <div class="col-md-6 text-end mt-4">
-          <button type="submit" class="btn btn-primary px-5" id="submitBtn" disabled>Loading Data...</button>
+      </div>
+
+      <!-- Months -->
+      <div class="form-section">
+        <div class="form-section-title">Period</div>
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label for="entryMonth">Entry Month</label>
+            <input type="text" class="form-control" id="entryMonth" required onchange="syncActionMonth()">
+            <div class="hint-text mt-1">Editable · defaults to 1st of current month</div>
+          </div>
+          <div class="col-md-3">
+            <label for="arrearsMonth">Arrears Month</label>
+            <select class="form-select" id="arrearsMonth"></select>
+          </div>
+          <!-- Action Month is hidden and auto-synced from Entry Month -->
+          <input type="hidden" id="actionMonth">
         </div>
       </div>
+
+      <!-- Absent Days -->
+      <div class="form-section">
+        <div class="form-section-title">Absent Days</div>
+        <div class="row g-3">
+          <div class="col-12">
+            <label for="absentDays">Select Date(s)</label>
+            <input type="text" class="form-control" id="absentDays" placeholder="Click dates · Hold SHIFT to select a range" required>
+            <div class="hint-text mt-1">No default date is pre-selected. Each selected day will be written as a separate row.</div>
+          </div>
+          <!-- Days Selected count is calculated but not shown -->
+          <input type="hidden" id="arrearsDaysDisplay" value="0">
+        </div>
+      </div>
+
+      <!-- Reason & Proof -->
+      <div class="form-section">
+        <div class="form-section-title">Details</div>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label for="reason">Reason</label>
+            <input list="reasonList" class="form-control" id="reason" value="Leave" required>
+            <datalist id="reasonList">
+              <option value="Leave">
+              <option value="Present">
+              <option value="Week Off">
+              <option value="Official duty">
+            </datalist>
+            <div class="hint-text mt-1">Choose from list or type another reason</div>
+          </div>
+          <div class="col-md-8">
+            <label for="proof">Proof</label>
+            <textarea class="form-control" id="proof" rows="2">Department Confirmation</textarea>
+          </div>
+        </div>
+        <!-- Action is always "Treated" and hidden -->
+        <input type="hidden" id="action" value="Treated">
+      </div>
+
+      <!-- Rec No & Submit -->
+      <div class="form-section">
+        <div class="form-section-title">Record Number</div>
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="d-block mb-2">Assign Rec No?</label>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="assignRec" id="assignYes" value="Yes" checked onchange="toggleRecNo()">
+              <label class="form-check-label" for="assignYes">Yes (Auto)</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="assignRec" id="assignNo" value="No" onchange="toggleRecNo()">
+              <label class="form-check-label" for="assignNo">No (Manual)</label>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <label for="manualRecNo">Manual Rec No</label>
+            <input type="text" class="form-control" id="manualRecNo" disabled placeholder="Will be auto-generated">
+          </div>
+          <div class="col-md-5 text-end">
+            <button type="submit" class="btn btn-primary btn-submit px-4" id="submitBtn" disabled>Loading Data...</button>
+          </div>
+        </div>
+      </div>
+
     </form>
-    
-    <div id="msgBox" class="alert"></div>
+
+    <div class="px-4 pb-3">
+      <div id="msgBox" class="alert"></div>
+    </div>
   </div>
 
-  <h4 class="mt-5">Recent Entries</h4>
+  <h4 class="mt-4 mb-3" style="font-weight:600;">Recent Entries</h4>
   <div class="card p-3 overflow-auto">
-    <table class="table table-striped table-hover history-table" id="historyTable">
+    <table class="table table-striped table-hover history-table mb-0" id="historyTable">
       <thead class="table-dark">
         <tr>
           <th>Row</th>
@@ -131,11 +218,12 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
   let selectedDatesArray = [];
-  let employeeDict = {}; 
-  let reverseEmployeeDict = {}; 
+  let employeeDict = {};
+  let reverseEmployeeDict = {};
   let lastClickedDate = null;
-  let isTrackingLookup = false; 
-  
+  let isTrackingLookup = false;
+  let nextRecNoValue = "";
+
   window.onload = function() {
     setupDates();
     loadInitialData();
@@ -146,32 +234,34 @@
     return "1-" + monthNames[date.getMonth()] + "-" + date.getFullYear();
   }
 
+  function syncActionMonth() {
+    document.getElementById("actionMonth").value = document.getElementById("entryMonth").value;
+  }
+
   function setupDates() {
     const today = new Date();
     const firstOfCurrent = getFirstOfMonthString(today);
-    
+
     document.getElementById("entryMonth").value = firstOfCurrent;
     document.getElementById("actionMonth").value = firstOfCurrent;
-    
+
     const arrearsSelect = document.getElementById("arrearsMonth");
-    arrearsSelect.innerHTML = ""; 
-    
+    arrearsSelect.innerHTML = "";
+
     for (let i = 0; i <= 7; i++) {
       let d = new Date(today.getFullYear(), today.getMonth() - i, 1);
       let optText = getFirstOfMonthString(d);
       let opt = document.createElement("option");
       opt.value = optText;
       opt.text = optText;
-      if (i === 1) opt.selected = true; 
+      if (i === 1) opt.selected = true;
       arrearsSelect.appendChild(opt);
     }
 
-    let lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-
+    // No default date for Absent Days
     flatpickr("#absentDays", {
       mode: "multiple",
       dateFormat: "d-M-Y",
-      defaultDate: lastMonth,
       onChange: function(selectedDates, dateStr, instance) {
         selectedDatesArray = dateStr.split(",").filter(d => d.trim() !== "");
         document.getElementById("arrearsDaysDisplay").value = selectedDatesArray.length;
@@ -179,27 +269,27 @@
       onDayCreate: function(dObj, dStr, fp, dayElem) {
         dayElem.addEventListener("click", function(e) {
           const currentClicked = dayElem.dateObj;
-          
+
           if (e.shiftKey && lastClickedDate) {
-            e.stopPropagation(); 
-            
+            e.stopPropagation();
+
             let start = new Date(Math.min(lastClickedDate.getTime(), currentClicked.getTime()));
             let end = new Date(Math.max(lastClickedDate.getTime(), currentClicked.getTime()));
-            
+
             let datesToAdd = [];
             let temp = new Date(start);
             while (temp <= end) {
               datesToAdd.push(new Date(temp));
               temp.setDate(temp.getDate() + 1);
             }
-            
+
             let currentSelected = fp.selectedDates;
             datesToAdd.forEach(d => {
               if (!currentSelected.some(sd => sd.toDateString() === d.toDateString())) {
                 currentSelected.push(d);
               }
             });
-            
+
             fp.setDate(currentSelected, true);
           }
           lastClickedDate = currentClicked;
@@ -213,28 +303,33 @@
       .withSuccessHandler(function(data) {
         employeeDict = data.empDict || {};
         reverseEmployeeDict = {};
-        
+
         const nameList = document.getElementById("empNameList");
         nameList.innerHTML = "";
-        
+
         for (let id in employeeDict) {
           let name = employeeDict[id];
-          let comboName = name + " (" + id + ")"; 
-          
-          reverseEmployeeDict[name] = id;         
-          reverseEmployeeDict[comboName] = id;    
-          
+          let comboName = name + " (" + id + ")";
+
+          reverseEmployeeDict[name] = id;
+          reverseEmployeeDict[comboName] = id;
+
           let opt = document.createElement("option");
           opt.value = comboName;
           nameList.appendChild(opt);
         }
 
         renderHistory(data.history);
-        
+
+        nextRecNoValue = data.nextRecNo || "";
+        const manualInput = document.getElementById("manualRecNo");
+        manualInput.placeholder = "Auto: " + nextRecNoValue;
+        // Pre-fill the value so it is ready when user switches to Manual
+        manualInput.value = nextRecNoValue;
+
         const submitBtn = document.getElementById("submitBtn");
         submitBtn.disabled = false;
         submitBtn.innerText = "Submit Record(s)";
-        document.getElementById("manualRecNo").placeholder = "Auto: " + data.nextRecNo;
       })
       .withFailureHandler(function(err) {
         alert("Failed to pull reference info: " + err.message);
@@ -251,7 +346,7 @@
 
     if (source === 'id') {
       const id = idField.value.toUpperCase().trim();
-      idField.value = id; 
+      idField.value = id;
       if (employeeDict && employeeDict[id]) {
         nameField.value = employeeDict[id];
       } else {
@@ -276,9 +371,12 @@
     const manualInput = document.getElementById("manualRecNo");
     if (assignYes) {
       manualInput.disabled = true;
-      manualInput.value = "";
+      // Keep the next Rec No ready, but do not send it when Auto is selected
     } else {
       manualInput.disabled = false;
+      if (!manualInput.value) {
+        manualInput.value = nextRecNoValue;
+      }
       manualInput.focus();
     }
   }
@@ -286,12 +384,12 @@
   function renderHistory(history) {
     const tbody = document.querySelector("#historyTable tbody");
     tbody.innerHTML = "";
-    
+
     if (!history || history.length === 0) {
       tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted">No recent history items found.</td></tr>';
       return;
     }
-    
+
     history.forEach(function(item) {
       const row = document.createElement("tr");
       let html = `<td>${item.row}</td>`;
@@ -309,11 +407,14 @@
       const submitBtn = document.getElementById("submitBtn");
       submitBtn.disabled = true;
       submitBtn.innerText = "Deleting...";
-      
+
       google.script.run
         .withSuccessHandler(function(data) {
           employeeDict = data.empDict || {};
           renderHistory(data.history);
+          nextRecNoValue = data.nextRecNo || "";
+          document.getElementById("manualRecNo").placeholder = "Auto: " + nextRecNoValue;
+          document.getElementById("manualRecNo").value = nextRecNoValue;
           submitBtn.disabled = false;
           submitBtn.innerText = "Submit Record(s)";
           showMsg("Row entry dropped successfully.", "success");
@@ -329,17 +430,20 @@
 
   function handleFormSubmit(event) {
     event.preventDefault();
-    
+
     const empId = document.getElementById("empId").value.trim();
     if (!empId || selectedDatesArray.length === 0) {
       alert("Please ensure Emp ID and Absent Days are correctly configured.");
       return;
     }
-    
+
+    // Ensure Action Month is always in sync
+    syncActionMonth();
+
     const submitBtn = document.getElementById("submitBtn");
     submitBtn.disabled = true;
     submitBtn.innerText = "Submitting...";
-    
+
     const formData = {
       empId: empId,
       entryMonth: document.getElementById("entryMonth").value,
@@ -347,17 +451,21 @@
       absentDates: JSON.stringify(selectedDatesArray),
       reason: document.getElementById("reason").value,
       proof: document.getElementById("proof").value,
-      action: document.getElementById("action").value,
+      action: "Treated",  // always Treated
       actionMonth: document.getElementById("actionMonth").value,
       assignRec: document.querySelector('input[name="assignRec"]:checked').value,
       manualRecNo: document.getElementById("manualRecNo").value.trim()
     };
-    
+
     google.script.run
       .withSuccessHandler(function(response) {
         if (response.success) {
           showMsg(response.message, "success");
           document.getElementById("recordForm").reset();
+          // Restore defaults after reset
+          document.getElementById("proof").value = "Department Confirmation";
+          document.getElementById("reason").value = "Leave";
+          document.getElementById("action").value = "Treated";
           setupDates();
           toggleRecNo();
           loadInitialData();
@@ -380,7 +488,6 @@
     msgBox.innerText = text;
     msgBox.className = "alert alert-" + type;
     msgBox.style.display = "block";
-    // Keep warning visible if it's a critical validation error, else clear in 6 seconds
     if (type === "success") {
       setTimeout(function() {
         msgBox.style.display = "none";
