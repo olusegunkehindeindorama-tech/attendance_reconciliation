@@ -109,12 +109,13 @@
         <div class="row g-3">
           <div class="col-md-3">
             <label for="entryMonth">Entry Month</label>
-            <input type="text" class="form-control" id="entryMonth" required onchange="syncActionMonth()">
-            <div class="hint-text mt-1">Editable · defaults to 1st of current month</div>
+            <select class="form-select" id="entryMonth" required onchange="syncActionMonth()"></select>
+            <div class="hint-text mt-1">Current or next month only</div>
           </div>
           <div class="col-md-3">
             <label for="arrearsMonth">Arrears Month</label>
             <select class="form-select" id="arrearsMonth"></select>
+            <div class="hint-text mt-1">Last 6 months</div>
           </div>
           <!-- Action Month is hidden and auto-synced from Entry Month -->
           <input type="hidden" id="actionMonth">
@@ -240,21 +241,39 @@
 
   function setupDates() {
     const today = new Date();
-    const firstOfCurrent = getFirstOfMonthString(today);
 
-    document.getElementById("entryMonth").value = firstOfCurrent;
-    document.getElementById("actionMonth").value = firstOfCurrent;
+    // Entry Month: current + next month only (current as default)
+    const entrySelect = document.getElementById("entryMonth");
+    entrySelect.innerHTML = "";
 
+    const currentMonthDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    const nextMonthDate = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+
+    const currentOpt = document.createElement("option");
+    currentOpt.value = getFirstOfMonthString(currentMonthDate);
+    currentOpt.text = getFirstOfMonthString(currentMonthDate);
+    currentOpt.selected = true;
+    entrySelect.appendChild(currentOpt);
+
+    const nextOpt = document.createElement("option");
+    nextOpt.value = getFirstOfMonthString(nextMonthDate);
+    nextOpt.text = getFirstOfMonthString(nextMonthDate);
+    entrySelect.appendChild(nextOpt);
+
+    // Sync hidden Action Month
+    document.getElementById("actionMonth").value = entrySelect.value;
+
+    // Arrears Month: last 6 months only (previous 6, default = previous month)
     const arrearsSelect = document.getElementById("arrearsMonth");
     arrearsSelect.innerHTML = "";
 
-    for (let i = 0; i <= 7; i++) {
+    for (let i = 1; i <= 6; i++) {
       let d = new Date(today.getFullYear(), today.getMonth() - i, 1);
       let optText = getFirstOfMonthString(d);
       let opt = document.createElement("option");
       opt.value = optText;
       opt.text = optText;
-      if (i === 1) opt.selected = true;
+      if (i === 1) opt.selected = true;  // previous month as default
       arrearsSelect.appendChild(opt);
     }
 
