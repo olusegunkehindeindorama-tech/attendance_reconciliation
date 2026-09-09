@@ -3,7 +3,6 @@
 <head>
   <base target="_top">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   
   <style>
     body {
@@ -73,6 +72,79 @@
       font-size: 0.8rem;
       color: #6c757d;
     }
+
+    /* Absent cases list */
+    .absent-list-container {
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      max-height: 280px;
+      overflow-y: auto;
+      background: #fff;
+    }
+    .absent-item {
+      display: flex;
+      align-items: center;
+      padding: 0.55rem 0.9rem;
+      border-bottom: 1px solid #f1f3f5;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.12s;
+    }
+    .absent-item:last-child {
+      border-bottom: none;
+    }
+    .absent-item:hover:not(.disabled) {
+      background: #f8f9fa;
+    }
+    .absent-item.selected {
+      background: #e7f1ff;
+    }
+    .absent-item.disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      background: #f8f9fa;
+    }
+    .absent-item .form-check-input {
+      margin-right: 0.75rem;
+      flex-shrink: 0;
+    }
+    .absent-date {
+      font-weight: 500;
+      min-width: 110px;
+    }
+    .status-badge {
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      margin-left: auto;
+    }
+    .status-open {
+      background: #d1e7dd;
+      color: #0f5132;
+    }
+    .status-done {
+      background: #e2e3e5;
+      color: #41464b;
+    }
+    .absent-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.6rem;
+    }
+    .absent-empty {
+      padding: 1.25rem;
+      text-align: center;
+      color: #6c757d;
+      font-size: 0.9rem;
+    }
+    .selected-count {
+      font-size: 0.85rem;
+      color: #0d6efd;
+      font-weight: 500;
+    }
   </style>
 </head>
 <body>
@@ -93,7 +165,7 @@
         <div class="row g-3">
           <div class="col-md-3">
             <label for="empId">Emp ID</label>
-            <input type="text" class="form-control" id="empId" required oninput="lookupByEvt('id')" placeholder="e.g. E1234">
+            <input type="text" class="form-control" id="empId" required oninput="lookupByEvt('id')" placeholder="e.g. FDT20088">
           </div>
           <div class="col-md-5">
             <label for="empName">Employee Name</label>
@@ -117,23 +189,33 @@
             <select class="form-select" id="arrearsMonth"></select>
             <div class="hint-text mt-1">Last 6 months</div>
           </div>
-          <!-- Action Month is hidden and auto-synced from Entry Month -->
           <input type="hidden" id="actionMonth">
         </div>
       </div>
 
-      <!-- Absent Days -->
+      <!-- Absent Days — constrained list from Absent_Cases -->
       <div class="form-section">
         <div class="form-section-title">Absent Days</div>
-        <div class="row g-3">
-          <div class="col-12">
-            <label for="absentDays">Select Date(s)</label>
-            <input type="text" class="form-control" id="absentDays" placeholder="Click dates · Hold SHIFT to select a range" required>
-            <div class="hint-text mt-1">No default date is pre-selected. Each selected day will be written as a separate row.</div>
-          </div>
-          <!-- Days Selected count is calculated but not shown -->
-          <input type="hidden" id="arrearsDaysDisplay" value="0">
+
+        <div class="absent-toolbar">
+          <button type="button" class="btn btn-outline-primary btn-sm" id="btnSelectAllOpen" onclick="selectAllOpen()" disabled>Select all open</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="btnClearSelection" onclick="clearSelection()" disabled>Clear selection</button>
+          <span class="selected-count ms-1" id="selectedCountLabel">0 selected</span>
         </div>
+
+        <div class="absent-list-container" id="absentListContainer">
+          <div class="absent-empty" id="absentEmptyMsg">Enter an Emp ID to load absent cases.</div>
+        </div>
+
+        <div class="hint-text mt-2">
+          Only days recorded in <strong>Absent_Cases</strong> are shown.
+          Open days can be selected (click or Shift+click for a range).
+          Already reconciled days appear greyed out with their status.
+        </div>
+
+        <!-- Hidden field kept for form compatibility; value is JSON array of display dates -->
+        <input type="hidden" id="absentDays" value="">
+        <input type="hidden" id="arrearsDaysDisplay" value="0">
       </div>
 
       <!-- Reason & Proof -->
@@ -156,7 +238,6 @@
             <textarea class="form-control" id="proof" rows="2">Department Confirmation</textarea>
           </div>
         </div>
-        <!-- Action is always "Treated" and hidden -->
         <input type="hidden" id="action" value="Treated">
       </div>
 
@@ -216,14 +297,14 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
   let selectedDatesArray = [];
   let employeeDict = {};
   let reverseEmployeeDict = {};
-  let lastClickedDate = null;
   let isTrackingLookup = false;
   let nextRecNoValue = "";
+  let currentAbsentCases = [];   // full list from server
+  let lastClickedIndex = null;  // for shift-range selection
 
   window.onload = function() {
     setupDates();
@@ -260,7 +341,6 @@
     nextOpt.text = getFirstOfMonthString(nextMonthDate);
     entrySelect.appendChild(nextOpt);
 
-    // Sync hidden Action Month
     document.getElementById("actionMonth").value = entrySelect.value;
 
     // Arrears Month: last 6 months only (previous 6, default = previous month)
@@ -273,48 +353,9 @@
       let opt = document.createElement("option");
       opt.value = optText;
       opt.text = optText;
-      if (i === 1) opt.selected = true;  // previous month as default
+      if (i === 1) opt.selected = true;
       arrearsSelect.appendChild(opt);
     }
-
-    // No default date for Absent Days
-    flatpickr("#absentDays", {
-      mode: "multiple",
-      dateFormat: "d-M-Y",
-      onChange: function(selectedDates, dateStr, instance) {
-        selectedDatesArray = dateStr.split(",").filter(d => d.trim() !== "");
-        document.getElementById("arrearsDaysDisplay").value = selectedDatesArray.length;
-      },
-      onDayCreate: function(dObj, dStr, fp, dayElem) {
-        dayElem.addEventListener("click", function(e) {
-          const currentClicked = dayElem.dateObj;
-
-          if (e.shiftKey && lastClickedDate) {
-            e.stopPropagation();
-
-            let start = new Date(Math.min(lastClickedDate.getTime(), currentClicked.getTime()));
-            let end = new Date(Math.max(lastClickedDate.getTime(), currentClicked.getTime()));
-
-            let datesToAdd = [];
-            let temp = new Date(start);
-            while (temp <= end) {
-              datesToAdd.push(new Date(temp));
-              temp.setDate(temp.getDate() + 1);
-            }
-
-            let currentSelected = fp.selectedDates;
-            datesToAdd.forEach(d => {
-              if (!currentSelected.some(sd => sd.toDateString() === d.toDateString())) {
-                currentSelected.push(d);
-              }
-            });
-
-            fp.setDate(currentSelected, true);
-          }
-          lastClickedDate = currentClicked;
-        });
-      }
-    });
   }
 
   function loadInitialData() {
@@ -343,7 +384,6 @@
         nextRecNoValue = data.nextRecNo || "";
         const manualInput = document.getElementById("manualRecNo");
         manualInput.placeholder = "Auto: " + nextRecNoValue;
-        // Pre-fill the value so it is ready when user switches to Manual
         manualInput.value = nextRecNoValue;
 
         const submitBtn = document.getElementById("submitBtn");
@@ -383,6 +423,185 @@
     }
 
     isTrackingLookup = false;
+
+    // Load absent cases whenever we have a resolved Emp ID
+    const resolvedId = document.getElementById("empId").value.trim();
+    if (resolvedId) {
+      loadAbsentCases(resolvedId);
+    } else {
+      clearAbsentList("Enter an Emp ID to load absent cases.");
+    }
+  }
+
+  function loadAbsentCases(empId) {
+    const container = document.getElementById("absentListContainer");
+    container.innerHTML = '<div class="absent-empty">Loading absent cases…</div>';
+    document.getElementById("btnSelectAllOpen").disabled = true;
+    document.getElementById("btnClearSelection").disabled = true;
+    selectedDatesArray = [];
+    lastClickedIndex = null;
+    updateSelectedCount();
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        currentAbsentCases = result.cases || [];
+        renderAbsentList(currentAbsentCases, result.message);
+      })
+      .withFailureHandler(function(err) {
+        clearAbsentList("Error loading cases: " + err.message);
+      })
+      .getAbsentCasesForEmployee(empId);
+  }
+
+  function clearAbsentList(msg) {
+    currentAbsentCases = [];
+    selectedDatesArray = [];
+    lastClickedIndex = null;
+    document.getElementById("absentListContainer").innerHTML =
+      '<div class="absent-empty">' + (msg || "No data.") + '</div>';
+    document.getElementById("btnSelectAllOpen").disabled = true;
+    document.getElementById("btnClearSelection").disabled = true;
+    updateSelectedCount();
+  }
+
+  function renderAbsentList(cases, emptyMessage) {
+    const container = document.getElementById("absentListContainer");
+    container.innerHTML = "";
+
+    if (!cases || cases.length === 0) {
+      container.innerHTML = '<div class="absent-empty">' +
+        (emptyMessage || "No absent cases found for this employee.") +
+        '</div>';
+      document.getElementById("btnSelectAllOpen").disabled = true;
+      document.getElementById("btnClearSelection").disabled = true;
+      return;
+    }
+
+    const hasOpen = cases.some(function(c) { return c.selectable; });
+    document.getElementById("btnSelectAllOpen").disabled = !hasOpen;
+    document.getElementById("btnClearSelection").disabled = false;
+
+    cases.forEach(function(item, index) {
+      const row = document.createElement("div");
+      row.className = "absent-item" + (item.selectable ? "" : " disabled");
+      row.dataset.index = index;
+      row.dataset.display = item.display;
+      row.dataset.key = item.key;
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.className = "form-check-input";
+      cb.disabled = !item.selectable;
+      cb.id = "abs_" + index;
+
+      const dateSpan = document.createElement("span");
+      dateSpan.className = "absent-date";
+      dateSpan.textContent = item.display;
+
+      const badge = document.createElement("span");
+      badge.className = "status-badge " + (item.selectable ? "status-open" : "status-done");
+      badge.textContent = item.selectable ? "Open" : (item.status || "Reconciled");
+
+      row.appendChild(cb);
+      row.appendChild(dateSpan);
+      row.appendChild(badge);
+
+      if (item.selectable) {
+        row.addEventListener("click", function(e) {
+          // Avoid double-toggle when clicking the checkbox itself
+          if (e.target === cb) {
+            // checkbox already toggled by browser; sync state
+            syncSelectionFromCheckbox(index, cb.checked, e.shiftKey);
+            return;
+          }
+          e.preventDefault();
+          handleItemClick(index, e.shiftKey);
+        });
+      }
+
+      container.appendChild(row);
+    });
+  }
+
+  function handleItemClick(index, shiftKey) {
+    const item = currentAbsentCases[index];
+    if (!item || !item.selectable) return;
+
+    if (shiftKey && lastClickedIndex !== null) {
+      // Range select: select all open items between lastClickedIndex and index
+      const start = Math.min(lastClickedIndex, index);
+      const end = Math.max(lastClickedIndex, index);
+      for (let i = start; i <= end; i++) {
+        if (currentAbsentCases[i] && currentAbsentCases[i].selectable) {
+          setItemSelected(i, true);
+        }
+      }
+    } else {
+      // Toggle single
+      const isSelected = selectedDatesArray.indexOf(item.display) !== -1;
+      setItemSelected(index, !isSelected);
+    }
+    lastClickedIndex = index;
+    updateSelectedCount();
+  }
+
+  function syncSelectionFromCheckbox(index, checked, shiftKey) {
+    if (shiftKey && lastClickedIndex !== null) {
+      handleItemClick(index, true);
+      return;
+    }
+    setItemSelected(index, checked);
+    lastClickedIndex = index;
+    updateSelectedCount();
+  }
+
+  function setItemSelected(index, selected) {
+    const item = currentAbsentCases[index];
+    if (!item || !item.selectable) return;
+
+    const row = document.querySelector('.absent-item[data-index="' + index + '"]');
+    const cb = row ? row.querySelector('input[type="checkbox"]') : null;
+
+    if (selected) {
+      if (selectedDatesArray.indexOf(item.display) === -1) {
+        selectedDatesArray.push(item.display);
+      }
+      if (row) row.classList.add("selected");
+      if (cb) cb.checked = true;
+    } else {
+      selectedDatesArray = selectedDatesArray.filter(function(d) { return d !== item.display; });
+      if (row) row.classList.remove("selected");
+      if (cb) cb.checked = false;
+    }
+  }
+
+  function selectAllOpen() {
+    currentAbsentCases.forEach(function(item, index) {
+      if (item.selectable) setItemSelected(index, true);
+    });
+    updateSelectedCount();
+  }
+
+  function clearSelection() {
+    currentAbsentCases.forEach(function(item, index) {
+      if (item.selectable) setItemSelected(index, false);
+    });
+    lastClickedIndex = null;
+    updateSelectedCount();
+  }
+
+  function updateSelectedCount() {
+    // Keep array sorted by the order they appear in the list (date order)
+    const orderMap = {};
+    currentAbsentCases.forEach(function(c, i) { orderMap[c.display] = i; });
+    selectedDatesArray.sort(function(a, b) {
+      return (orderMap[a] || 0) - (orderMap[b] || 0);
+    });
+
+    document.getElementById("selectedCountLabel").textContent =
+      selectedDatesArray.length + " selected";
+    document.getElementById("arrearsDaysDisplay").value = selectedDatesArray.length;
+    document.getElementById("absentDays").value = selectedDatesArray.join(", ");
   }
 
   function toggleRecNo() {
@@ -390,7 +609,6 @@
     const manualInput = document.getElementById("manualRecNo");
     if (assignYes) {
       manualInput.disabled = true;
-      // Keep the next Rec No ready, but do not send it when Auto is selected
     } else {
       manualInput.disabled = false;
       if (!manualInput.value) {
@@ -452,11 +670,10 @@
 
     const empId = document.getElementById("empId").value.trim();
     if (!empId || selectedDatesArray.length === 0) {
-      alert("Please ensure Emp ID and Absent Days are correctly configured.");
+      alert("Please ensure Emp ID is set and at least one open absent day is selected.");
       return;
     }
 
-    // Ensure Action Month is always in sync
     syncActionMonth();
 
     const submitBtn = document.getElementById("submitBtn");
@@ -470,7 +687,7 @@
       absentDates: JSON.stringify(selectedDatesArray),
       reason: document.getElementById("reason").value,
       proof: document.getElementById("proof").value,
-      action: "Treated",  // always Treated
+      action: "Treated",
       actionMonth: document.getElementById("actionMonth").value,
       assignRec: document.querySelector('input[name="assignRec"]:checked').value,
       manualRecNo: document.getElementById("manualRecNo").value.trim()
@@ -481,10 +698,13 @@
         if (response.success) {
           showMsg(response.message, "success");
           document.getElementById("recordForm").reset();
-          // Restore defaults after reset
           document.getElementById("proof").value = "Department Confirmation";
           document.getElementById("reason").value = "Leave";
           document.getElementById("action").value = "Treated";
+          selectedDatesArray = [];
+          currentAbsentCases = [];
+          lastClickedIndex = null;
+          clearAbsentList("Enter an Emp ID to load absent cases.");
           setupDates();
           toggleRecNo();
           loadInitialData();
